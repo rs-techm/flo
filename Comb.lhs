@@ -15,15 +15,15 @@
 Creates a module with size inputs and outputs that reorders the inputs
 according to the specified function fn which should be bijective (?)
 
-> permute name fn size = make_block ("permute_"++name++"_"++(show size)) (wire_vec "i" 0 size) (wire_vec "o" 0 size)
->                        (map (\i->inst_block pblk_id [("i"++(show i)),("o"++(show (fn size i)))]) [0..(size-1)])
+> {-permute name fn size = make_block ("permute_"++name++"_"++(show size)) (wire_vec "i" 0 size) (wire_vec "o" 0 size)
+>                        (map (\i->inst_block pblk_id [("i"++(show i)),("o"++(show (fn size i)))]) [0..(size-1)]) -}
 
-> chain2 port0 port1 wire_prefix inst_blocks = map (\(inst_block,i)-> attach_v inst_block [port0,port1]
+> {-chain2 port0 port1 wire_prefix inst_blocks = map (\(inst_block,i)-> attach_v inst_block [port0,port1]
 >                                                                     [wire_prefix++(show i),wire_prefix++(show (i+1))])
->                                              (zip inst_blocks [0..])
+>                                              (zip inst_blocks [0..]) -}
 
-> chain_old port0 port1 wires inst_blocks = zipWith3 (\w0 w1 inst_block-> attach_v inst_block [port0,port1] [w0,w1])
->                                       wires (tail wires) inst_blocks
+> {-chain_old port0 port1 wires inst_blocks = zipWith3 (\w0 w1 inst_block-> attach_v inst_block [port0,port1] [w0,w1])
+>                                       wires (tail wires) inst_blocks -}
 
 > ---Combinators
 
@@ -45,12 +45,12 @@ Combinators to do:
 > replace_elem list elem elem' = map (\e->if e == elem then elem' else e) list
 > replace_elems list elems elems' = foldr (\(e,e') r->replace_elem r e e') list (zipWith (,) elems elems')
 >
-> join :: [Char]->Block->Block->[[Char]]->[[Char]]->[[Char]]->Block
+> {-join :: [Char]->Block->Block->[[Char]]->[[Char]]->[[Char]]->Block
 > join name blk0 blk1 adj0 adj1 com = 
 >   make_block name (com++(((in_ports_ blk0)\\com)\\adj0)++(((in_ports_ blk1)\\com)\\adj1))
 >                (((out_ports_ blk0)\\adj0)++((out_ports_ blk1)\\adj1))
 >                [inst_block blk0 (replace_elems ((in_ports_ blk0)++(out_ports_ blk0)) adj0 (wire_vec "_t" 0 (length adj0))),
->                 inst_block blk1 (replace_elems ((in_ports_ blk1)++(out_ports_ blk1)) adj1 (wire_vec "_t" 0 (length adj1)))]
+>                 inst_block blk1 (replace_elems ((in_ports_ blk1)++(out_ports_ blk1)) adj1 (wire_vec "_t" 0 (length adj1)))] -}
 >
 > -- chain::Block->[{Char]]->[{Char]]->Int->Block
 > {- chain block com_in adj size =
@@ -163,43 +163,43 @@ Attributes:
 >       [inst_block blk (ports_vec_i (io_ports blk) (bi++bo) i),
 >        inst_block cur_chain (comi++(prev_bl\\(out_ports_ cur_chain)) ]) --}
 
-> chn' name comi (blk,iname,lki,lko,rki,rko,ki,ko) (k,cur_chain,lkm1i,lkm1o,r0i,r0o,km10i_,km10o_) =
+> {-chn' name comi (blk,iname,lki,lko,rki,rko,ki,ko) (k,cur_chain,lkm1i,lkm1o,r0i,r0o,km10i_,km10o_) =
 >   (k,make_block (name++"_"++iname) (comi++lki++r0i++(ports_vec_i' ki k)++km10i_) (lko++r0o++(ports_vec_i' ko k)++km10o_)
 >    [inst_block blk (comi++lki++rki++(ports_vec_i' ki k)++lko++rko++(ports_vec_i' ko k)),
 >     inst_block cur_chain (comi++rko++r0i++km10i_++rki++r0o++km10o_)],
->    lki,lko,r0i,r0o,(ports_vec_i' ki k)++km10i_,(ports_vec_i' ko k)++km10o_)
+>    lki,lko,r0i,r0o,(ports_vec_i' ki k)++km10i_,(ports_vec_i' ko k)++km10o_) -}
 
 Partition ports of each blk in list.
 
-> {- part_ports comi l = foldr (part_ports' comi) [] l
+> --part_ports comi l = foldr (part_ports' comi) [] l
 
-> part_ports comi (blk,iname,lk,rk) = (blk,iname,(intersect lk (in_ports_ blk)),(intersect lk (out_ports_ blk)),
+> {-part_ports comi (blk,iname,lk,rk) = (blk,iname,(intersect lk (in_ports_ blk)),(intersect lk (out_ports_ blk)),
 >                                      (intersect rk (in_ports_ blk)),(intersect rk (out_ports_ blk)),
->                                      (inports_ blk)\\(comi++lk++rk),(outports_ blk)\\(lk++rk))
+>                                      (inports_ blk)\\(comi++lk++rk),(outports_ blk)\\(lk++rk)) -}
 
-> blk0_ports (blk,iname,lki,lko,rki,rko,ki,ko) = (blk,iname,lki,lko,rki,rko,(ports_vec_i' 0 ki),(ports_vec_i' 0 ko))
+> {-blk0_ports (blk,iname,lki,lko,rki,rko,ki,ko) = (blk,iname,lki,lko,rki,rko,(ports_vec_i' 0 ki),(ports_vec_i' 0 ko)) -}
 
-> chn name comi b0 p f g x = foldr (chn' name comi) (blk0_ports (part_ports comi b0)) (unfold p f g x)
+> {-chn name comi b0 p f g x = foldr (chn' name comi) (blk0_ports (part_ports comi b0)) (unfold p f g x) -}
 
-> chn_u name comi b0 p f g x =
+> {-chn_u name comi b0 p f g x =
 >   let (blk,iname,adj) = \x->(f x)
->   in chn name comi b0 p (\x->(blk,iname,(intersect adj (in_ports_ blk)),(intersect adj) (out_ports_ blk))) g x
+>   in chn name comi b0 p (\x->(blk,iname,(intersect adj (in_ports_ blk)),(intersect adj) (out_ports_ blk))) g x -}
 
-> chn_uw name comi b0 p f g x = let (blk,iname) = \x->(f x) in chn_u name comi b0 p (\(adj,y)->(blk,iname,adj)) g x
+> {-chn_uw name comi b0 p f g x = let (blk,iname) = \x->(f x) in chn_u name comi b0 p (\(adj,y)->(blk,iname,adj)) g x -}
 
-> chn_uwm name comi b0 p f g x = let iname = \x->(f x) in chn_uw name comi b0 p (\(blk,adj,y)->(blk,iname)) (g x
+> {-chn_uwm name comi b0 p f g x = let iname = \x->(f x) in chn_uw name comi b0 p (\(blk,adj,y)->(blk,iname)) (g x -}
 
-> chn_uwmn name comi b0 p g x = let iname = \x->(f x) in chn_uwm name comi b0 p (\(iname,blk,adj,y)->iname) g x -}
+> {-chn_uwmn name comi b0 p g x = let iname = \x->(f x) in chn_uwm name comi b0 p (\(iname,blk,adj,y)->iname) g x -}
 
-> chain0 name com_in adj (j,blk) (i,b) = 
+> {-chain0 name com_in adj (j,blk) (i,b) = 
 >   let vports = (((io_ports blk)\\com_in)\\adj)
 >   in (i+1, make_block (name++"_"++j) (ports_vec ((in_ports_ blk)\\adj) vports (i+1))
 >       (ports_vec (out_ports_ blk) vports (i+1))
 >       [inst_block blk (ports_vec_i (io_ports blk) vports i),
 >        inst_block b (ports_vec (replace_elems (((in_ports_ blk)\\adj)++(out_ports_ blk))
->                                 (intersect (out_ports_ blk) adj) (intersect (in_ports_ blk) adj)) vports (i))])
+>                                 (intersect (out_ports_ blk) adj) (intersect (in_ports_ blk) adj)) vports (i))]) -}
 >
-> chain name com_in adj blk0 blks = snd (foldr (chain0 name com_in adj) (0,blk0) blks)
+> {-chain name com_in adj blk0 blks = snd (foldr (chain0 name com_in adj) (0,blk0) blks) -}
 
 > wire_vec prefix start size = map (\i-> prefix ++ (show i)) [start..(start+size-1)]
 
