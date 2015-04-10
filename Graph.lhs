@@ -146,11 +146,22 @@ a graph from list of edges and may be useful on its own.
 
 > insEdges le = foldr insEdge' empty le
 
-**** DONE delEdge? <2012-09-25 Tue> <2012-09-25 Tue>
+**** DONE delEdge? <2012-09-25 Tue>
 
 Union and variants have same semantics as the corresponding Map functions.
 
 **** TODO Unions may not be too useful. Proper merge_graph required (perhaps unionWith with a suitable function).
+
+*** Depth First Search <2015-04-10 Fri>
+
+Based on [[https://en.wikipedia.org/wiki/Depth-first_search#Pseudocode][wikipedia. Set as well as list used to store nodes, as former is used
+to search for nodes and latter to preserve order (and is the output).
+
+> dfs1 node ((set,list),graph) = if (Set.member node set) then ((set,list),graph) else dfs0 graph node (set,list)
+
+> dfs0 graph node (set,list) = Set.fold dfs1 ((Set.insert node set,(node:list)),graph) (outNodeSet node graph)
+
+> dfs graph node = snd (dfs0 graph node (Set.empty,[]))
 
 Currently merge_graph valid only for graphs with disjoint nodes
 
@@ -178,14 +189,14 @@ the graph. Returns a map with nodes as keys and the assigned ints as data values
 > numNodes i0 graph = Map.fromList (zipWith (\n i->(n,i)) (nodes graph) [i0..])
 
 
-Transitive closure.
+*** Transitive closure.
 
 > --trans_clos' g node = Set.fold (\(src,dest,lab) g'->if is_edge' (src,node) && is_edge' (node,dest) then g (edges g))
 
 > --trans_clos g = trans_clos' (nodes g)
 
 
-Convert given graph to Graphviz format.
+*** Convert given graph to Graphviz format.
 
 > graphviz_header = "digraph gv {\n        margin = \"0\"\n        page = \"8.5,11.0\"\n        size = \"11.0,8.5\"\n        rotate = \"90\"\n        ratio = \"fill\"\n"
 
