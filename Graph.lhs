@@ -15,6 +15,10 @@ representation that simply accepts unique node labels whatever their
 type maybe (also such a graph representation seems possible using just
 sets and maps).
 
+
+'Adjacency list' representation with the list of nodes represented by a map,
+and the list for each node represented by a set.
+
 The idea is to represent a graph as a map whose key values are node
 names (labels) and whose data values are sets, whose elements are
 pairs of edge names and destination node values (distinct edge names
@@ -45,7 +49,7 @@ not in graph.
 
 When node name is not found in the graph, graph is returned
 unchanged. Otherwise outgoing as well as incoming edges to the node
-are deleted. Later get deleted by delting the corresponding set, but
+are deleted. Later get deleted by deleting the corresponding set, but
 the former have to be hunted down, requiring the Map.map and Set.fold.
 
 > delNode node graph = if Map.member node graph
@@ -113,7 +117,7 @@ Graph type and out* functions return (edge,node) while inEdgeSet returns
      Should insEdge also check if destination node is in graph. If not, should
      a separate graph consistency function be written to ensure each node is
      inserted via insNode? If former is assumed, allNodes need not be so
-     complex
+     complex.
 
 **** TODO
      Rename allNodes to nodeList or better, nodes (latter also consistent with Data.Map).
@@ -148,7 +152,7 @@ Union and variants have same semantics as the corresponding Map functions.
 
 **** TODO Unions may not be too useful. Proper merge_graph required (perhaps unionWith with a suitable function).
 
-Currently merge_graph valid only for graphs with disjoin nodes
+Currently merge_graph valid only for graphs with disjoint nodes
 
 > merge_graphs g1 g2 = Map.unionWith Set.union g1 g2
 

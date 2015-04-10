@@ -7,6 +7,7 @@
 > import Numeric
 > import qualified Data.Map as Map
 
+
 > import Flo
 > import Misc
 > import Comb
@@ -142,7 +143,7 @@ seems to be better.
 > dfsl = make_block "dfsl" ["clk","set","load","in"] ["out"] [inst_block mux2 ["out","in","load","_in"],
 >                                                             inst_block dfs ["clk","set","_in","out"]]
 
-****TODO dfrl and dffen seem same
+**** TODO dfrl and dffen seem same
 
 __jkfr is incorrect (instead of k, its complement should be input to mux) and
 not really needed, but retained as used in stackef' which may (not sure) be
