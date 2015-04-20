@@ -120,8 +120,8 @@ Other features:
 
 *** Combinators
 
-> {-ser a b = make_block ((name_ a)++"S"++(name_ b)) (in_ports_ a) (out_ports_ b)
->           [inst_block a ((in_ports_ a)++(out_ports_ a)), inst_block b ((out_ports_ a)++(out_ports_ b))] -}
+> ser a b = make_block ((name_ a)++"S"++(name_ b)) (in_ports_ a) (out_ports_ b)
+>           [inst_block a ((in_ports_ a)++(out_ports_ a)), inst_block b ((out_ports_ a)++(out_ports_ b))]
 
 > {-adds l = map ((++) "S") l -} --map (\w->if w=="clk" || w=="reset" then w else "S"++w) l --hack?
 
@@ -131,18 +131,18 @@ Other features:
 **** DONE ser' is useful (synch_ram) but not general as (in_ports_ b) and (in_ports_ a) size may differ, what to do?
      [changed ser' def to something (hopefully) more useful.]
 
-> {-par a b = make_block ((name_ a)++"P"++(name_ b)) ((in_ports_ a)++(in_ports_ b)) ((out_ports_ a)++(out_ports_ b))
->           [inst_block a ((in_ports_ a)++(out_ports_ a)), inst_block b ((in_ports_ b)++(out_ports_ b))] -}
+> par a b = make_block ((name_ a)++"P"++(name_ b)) ((in_ports_ a)++(in_ports_ b)) ((out_ports_ a)++(out_ports_ b))
+>           [inst_block a ((in_ports_ a)++(out_ports_ a)), inst_block b ((in_ports_ b)++(out_ports_ b))]
 
 > --id = make_block "id" ["a"] ["a"] []
 
-> {-addp l = map (\w->if w=="clk" || w=="reset" then w else "P"++w) l -- map ((++) "P") l  -}
+> addp l = map (\w->if w=="clk" || w=="reset" then w else "P"++w) l -- map ((++) "P") l
 
 **** TODO Use of nub in par'?
 
-> {-par' a b = make_block ((name_ a)++"P"++(name_ b)) (nub ((in_ports_ a)++(addp (in_ports_ b))))
+> par' a b = make_block ((name_ a)++"P"++(name_ b)) (nub ((in_ports_ a)++(addp (in_ports_ b))))
 >            (nub ((out_ports_ a)++(addp (out_ports_ b))))
->            [inst_block a ((in_ports_ a)++(out_ports_ a)), inst_block b (addp ((in_ports_ b)++(out_ports_ b)))] -}
+>            [inst_block a ((in_ports_ a)++(out_ports_ a)), inst_block b (addp ((in_ports_ b)++(out_ports_ b)))]
 
 **** TODO Special treatment of clk and reset in ser' and par', whats a better way?
 
@@ -167,7 +167,7 @@ reni (rename inputs) essentially (by creating a new block in which b is
 instantiated) replaces the list of input port names of b by the list l (which
 should be of same size).
 
-> {-reni l b = make_block ("reni_"++(name_ b)) l (out_ports_ b) [inst_block b (l++(out_ports_ b))] -}
+> reni l b = make_block ("reni_"++(name_ b)) l (out_ports_ b) [inst_block b (l++(out_ports_ b))]
 
 *** Primitives
 

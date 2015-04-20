@@ -15,8 +15,8 @@
 Creates a module with size inputs and outputs that reorders the inputs
 according to the specified function fn which should be bijective (?)
 
-> {-permute name fn size = make_block ("permute_"++name++"_"++(show size)) (wire_vec "i" 0 size) (wire_vec "o" 0 size)
->                        (map (\i->inst_block pblk_id [("i"++(show i)),("o"++(show (fn size i)))]) [0..(size-1)]) -}
+> permute name fn size = make_block ("permute_"++name++"_"++(show size)) (wire_vec "i" 0 size) (wire_vec "o" 0 size)
+>                        (map (\i->inst_block pblk_id [("i"++(show i)),("o"++(show (fn size i)))]) [0..(size-1)])
 
 > {-chain2 port0 port1 wire_prefix inst_blocks = map (\(inst_block,i)-> attach_v inst_block [port0,port1]
 >                                                                     [wire_prefix++(show i),wire_prefix++(show (i+1))])
