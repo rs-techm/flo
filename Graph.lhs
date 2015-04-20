@@ -4,7 +4,7 @@
 > import qualified Data.Set as Set
 
 
-Graph
+* Graph
 
 FGL caused lot of grief due to the necessity of specifying a node by a
 (node(::Int), lab) pair in which the node number has to be
@@ -49,7 +49,7 @@ not in graph.
 
 When node name is not found in the graph, graph is returned
 unchanged. Otherwise outgoing as well as incoming edges to the node
-are deleted. Later get deleted by deleting the corresponding set, but
+are deleted. Latter get deleted by deleting the corresponding set, but
 the former have to be hunted down, requiring the Map.map and Set.fold.
 
 > delNode node graph = if Map.member node graph
@@ -136,15 +136,24 @@ Graph type and out* functions return (edge,node) while inEdgeSet returns
 >                         then Map.adjust (Set.delete (e,dn)) sn graph
 >                         else error ((show sn)++"insEdge: Node not found.")
 
+As there can be more than one edge between two nodes, delEdge' deletes all such
+edge(s).
+
+> delEdge' sn dn graph = foldr (\(sn,dn,e) graph'->delEdge e sn dn graph') graph (Set.fold (\(e,n) l->if(n==dn) then ((sn,dn,e):l) else l) [] (outEdgeSet sn graph))
+
+> delInEdges node graph = Set.fold (\(sn,el) graph'->(delEdge el sn node graph')) graph (inEdgeSet node graph)
+
+> delOutEdges node graph = Set.fold (\(el,dn) graph'->(delEdge el node dn graph')) graph (outEdgeSet node graph)
+
 **** TODO Rewrite insEdge like insEdge'.
 
 
 Insert edge variant that creates nodes if they don't exist. Required to create
 a graph from list of edges and may be useful on its own.
 
-> insEdge' (sn,dn,el) graph = Map.adjust (Set.insert (el,dn)) sn (insNode' dn (insNode' sn graph))
+> insEdge' sn dn el graph = Map.adjust (Set.insert (el,dn)) sn (insNode' dn (insNode' sn graph))
 
-> insEdges le = foldr insEdge' empty le
+> insEdges le = foldr (\(sn,dn,el) graph->insEdge' sn dn el graph) empty le
 
 **** DONE delEdge? <2012-09-25 Tue>
 
@@ -154,14 +163,76 @@ Union and variants have same semantics as the corresponding Map functions.
 
 *** Depth First Search <2015-04-10 Fri>
 
-Based on [[https://en.wikipedia.org/wiki/Depth-first_search#Pseudocode][wikipedia. Set as well as list used to store nodes, as former is used
-to search for nodes and latter to preserve order (and is the output).
+Based on [[https://en.wikipedia.org/wiki/Depth-first_search#Pseudocode][wikipedia]]. Set as well as list used to store nodes, as former is used
+to search for nodes and latter to preserve order (and is the output). Seems
+graph argument for dfs1 can be give separately as graph not modified. Seems to
+output nodes in preorder.
 
-> dfs1 node ((set,list),graph) = if (Set.member node set) then ((set,list),graph) else dfs0 graph node (set,list)
+> --dfs1 node ((set,list),graph) = if (Set.member node set) then ((set,list),graph) else dfs0 graph node (set,list)
 
-> dfs0 graph node (set,list) = Set.fold dfs1 ((Set.insert node set,(node:list)),graph) (outNodeSet node graph)
+> --dfs0 graph node (set,list) = Set.fold dfs1 ((Set.insert node set,(node:list)),graph) (outNodeSet node graph)
 
-> dfs graph node = snd (dfs0 graph node (Set.empty,[]))
+> --dfs graph node = snd (fst (dfs0 graph node (Set.empty,[])))
+
+> --dfs1 node ((set,list),graph) = if (Set.member node set) then ((set,list),graph) else dfs0 graph node (set,list)
+
+> --dfs0 graph node (set,list) = let Set.fold dfs1 ((Set.insert node set,node),graph) (outNodeSet node graph)
+
+> --dfs graph node = snd (fst (dfs0 graph node (Set.empty,[])))
+
+Below variation outputs edges (in postorder?) forming a spanning tree. preorder
+function can be used to traverse tree and output nodes (in pre(post?) order?).
+
+> dfs1_t node' node ((set,tree),graph) = let ((set',tree'),graph') = dfs0_t graph node (set,tree)
+>                                            tree'' = insEdge' node' node [] tree'
+>                                      in if (Set.member node set) then ((set,tree),graph) else ((set',tree''),graph')
+
+> dfs0_t graph node (set,tree) = Set.fold (dfs1_t node) ((Set.insert node set,tree),graph) (outNodeSet node graph)
+
+> dfs_t graph node = snd (fst (dfs0_t graph node (Set.empty,empty)))
+
+> preorder root tree = root:(concatMap (\n->preorder n tree) (outNodes root tree))
+
+
+Below version also [[https://en.wikipedia.org/wiki/Depth-first_search#Pseudocode][wikipedia]] based but quite elegant because instead of a
+separate set, visited nodes kept track of using the graph itself from which
+visited nodes deleted which has the advantage of removing the 'if' which makes
+the program quite compact and 'elegant'. This version computes reverse preorder
+of nodes.
+
+One concern with this approach might be the (proportional to edges) time
+required for delNode, but this can resuced to time required if a separate set
+was used (to keep track of visited nodes) by usinga 'quick and dirty' version
+of delNode that doesn't other removing edges, and (if required) a corresponding
+outNodeSet that works properly on a graph output by above delNode.
+
+> dfs_pre0 node (graph,nodes) = Set.fold dfs_pre0 ((delNode node graph),node:nodes) (outNodeSet node graph)
+
+> dfs_pre node graph = snd (dfs_pre0 node (graph,[]))
+
+Essentially same as above, but computes nodes in reverse postorder.
+
+> dfs_post0 node (graph,nodes) = let (graph',nodes') = Set.fold dfs_post0 ((delNode node graph),nodes) (outNodeSet node graph)
+>                                in (graph',node:nodes')
+
+> dfs_post node graph = snd (dfs_post0 node (graph,[]))
+
+
+
+*** Topological Sort <2015-04-10 Fri>
+
+> topo_sort2 node node' (graph,nodes0) = (delEdge' node node' graph, (if (Set.null (inEdgeSet node' (delEdge' node node' graph))) then (node':nodes0) else nodes0))
+
+> topo_sort1 graph node nodes0 = Set.fold (topo_sort2 node) (graph,nodes0) (outNodeSet node graph)
+
+> topo_sort0 (graph,nodes0) topo = if nodes0==[] then (graph,nodes0,topo) else topo_sort0 (topo_sort1 graph (head nodes0) (tail nodes0)) ((head nodes0):topo)
+
+> topo_sort graph = let (graph',nodes0,topo) = topo_sort0 (graph,(filter (\n->Set.null (inEdgeSet n graph)) (nodes graph))) []
+>                   in if (edges graph')==[] then topo else error "topo_sort: graph contains cycle(s)."
+
+> tg graph = (filter (\n->Set.null (inEdgeSet n graph)) (nodes graph))
+        
+*** Merge 
 
 Currently merge_graph valid only for graphs with disjoint nodes
 
@@ -179,7 +250,6 @@ Currently merge_graph valid only for graphs with disjoint nodes
 
 
 > mapNodes fn graph = Map.foldWithKey (\n s m->Map.insert (fn n) (Set.map (\(e,n')->(e,(fn n'))) s) m) Map.empty graph
-
 
 > delquotes s = filter ((/=) '"') s
 
@@ -212,6 +282,15 @@ the graph. Returns a map with nodes as keys and the assigned ints as data values
 > graphviz graph = graphviz_header++(graphviz_nodes (numNodes 1 graph) graph)++(graphviz_edges (numNodes 1 graph) graph)++
 >                  graphviz_footer
 
+
+*** Test graphs
+
+> diamond = insEdges [('a','b',[]),('a','c',[]),('c','d',[]),('b','d',[])]
+
+> dag_7node = insEdges [('a','b',[]),('a','f',[]),('a','g',[]),('c','g',[]),('b','c',[]),('b','e',[]),('f','d',[]),('e','d',[]),('d','c',[])]
+
+> conn_4node_cyc = insEdges [(0,1,[]), (0,2,[]), (1,2,[]), (2,0,[]), (2,3,[]), (3,3,[])]
+                
 **** TODO show "\\" outputs "\\\\" so putStr(shows"\\") outputs "\\" but "\" is required. <2012-08-15 Wed>
 
 
