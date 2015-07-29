@@ -4,6 +4,7 @@
 > import Data.Char
 > import Numeric
 > import Data.List
+> import qualified Data.Set as Set
 > import qualified Data.Map as Map
 
 > import Misc
@@ -38,28 +39,72 @@
 
 > out_ver = putStr . fl__ver
 
+Seems there is a subtle point in how Block and Inst_block are defined below
+(which happens to be 'mutually recursive'). It may initially seem that a single
+definition as a 'rose' tree (each node defined as data plus a forest (list) of
+trees). But above would be relatively simplistic compared to how
+function/procedure definitions are typically structured in a programming
+language: each definitions may 'refer' other definitions, and since multiple
+such references can occur to a single definition, the structure is somewhat
+more complex than a simple tree, and the definitions below seem to be a more
+natural fit. <2015-04-28 Tue>
+
 > data Block = Block_ {name_ :: String, in_ports_ :: [String], out_ports_ :: [String], inst_blocks_ :: [Inst_block]}
 > --             deriving (Eq, Show)
 >            | Pblock_ {name_ :: String, in_ports_ :: [String], out_ports_ :: [String], text_ :: String}
 >            | Lblock_ {name_ :: String, in_ports_ :: [String], out_ports_ :: [String]}
 >              deriving (Eq, Show)
 
+Below stuff to make Block (and Inst_block) instance of Ord class.
+
+**** TODO test
+
+**** TODO remove Lblock
+
+> block_ord list = foldr (\new old->if old/=EQ then old else new) EQ list
+
+> instance Ord Block where
+>     compare block0 block1 = case (block0,block1) of
+>                             ((Lblock_ a0 b0 c0),(Lblock_ a1 b1 c1)) -> block_ord [(compare a0 a1),(compare b0 b1),(compare c0 c1)]
+>                             ((Lblock_ a0 b0 c0),(Pblock_ a1 b1 c1 d1)) -> LT
+>                             ((Lblock_ a0 b0 c0),(Block_ a1 b1 c1 d1)) -> LT
+>                             ((Pblock_ a0 b0 c0 d0),(Lblock_ a1 b1 c1)) -> GT
+>                             ((Pblock_ a0 b0 c0 d0),(Pblock_ a1 b1 c1 d1)) -> block_ord [(compare a0 a1),(compare b0 b1),(compare c0 c1),(compare d0 d1)]
+>                             ((Pblock_ a0 b0 c0 d0),(Block_ a1 b1 c1 d1)) -> LT
+>                             ((Block_ a0 b0 c0 d0),(Lblock_ a1 b1 c1)) -> GT
+>                             ((Block_ a0 b0 c0 d0),(Pblock_ a1 b1 c1 d1)) -> GT
+>                             ((Block_ a0 b0 c0 d0),(Block_ a1 b1 c1 d1)) -> block_ord [(compare a0 a1),(compare b0 b1),(compare c0 c1),(compare d0 d1)]
+        
 > data Inst_block = Inst_block_ {block_ :: Block, wires_ :: [String]}
 >                   deriving (Eq, Show)
 
+> instance Ord Inst_block where
+>     compare (Inst_block_ b0 w0) (Inst_block_ b1 w1) = if (compare b0 b1)/=EQ then (compare b0 b1) else (compare w0 w1)
+        
 > io_ports block = (in_ports_ block)++(out_ports_ block)
+
+> all_wires block = filter (\w->isAlpha(head w)||('_'==(head w))) (concatMap wires_(inst_blocks_ block))
+
+> non_io_wires block = Set.toList (Set.difference (Set.fromList (all_wires block)) (Set.fromList (io_ports block)))
+
+**** TODO Use non_io_wires in block__mod
 
 > trav_blocks fn fnp fnl block = case block of
 >                                Block_ a b c d -> fn block (map ((trav_blocks fn fnp fnl) . block_) (inst_blocks_ block))
 >                                Pblock_ a b c d -> fnp block
 >                                Lblock_ a b c -> fnl block
 
+> trav_blocks' fn fnp inst_block = case (block_ inst_block) of
+>                                  Block_ a b c d -> fn inst_block (map ((trav_blocks' fn fnp)) (inst_blocks_ (block_ inst_block)))
+>                                  Pblock_ a b c d -> fnp inst_block
+
+
 > v_inst_mod (inst_block, i) = "  "++(name_ (block_ inst_block))++" "++(name_ (block_ inst_block))++"_"++(show i)++"("++
 >                              ((concat (intersperse ", " (wires_ inst_block))))++");\n"
 
 > dec_wires blk = intercalate ", "  
 >                 ((if (in_ports_ blk)==[] then [] else ["input wire "++(((intercalate ", ") . in_ports_) blk)])++
->                 (if (out_ports_ blk)==[] then [] else ["output wire "++(((intercalate ", ") . out_ports_) blk)]))
+>                  (if (out_ports_ blk)==[] then [] else ["output wire "++(((intercalate ", ") . out_ports_) blk)]))
 
 > block__mod block = let all_wires = filter (\w->isAlpha(head w)||('_'==(head w))) (concatMap wires_ (inst_blocks_ block))
 >                        wires = (\\) (nub all_wires) (io_ports block)
