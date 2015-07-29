@@ -6,6 +6,11 @@
 > import qualified Data.Map as M
 > import qualified Data.Set as S
 
+Generic tree:
+
+> data Tree a = Tree_ {node_::a, forest_::[Tree a]} deriving (Eq, Ord, Show)
+
+
 > unfold :: (t -> Bool) -> (t -> a) -> (t -> t) -> t -> [a]
 > unfold p f g x = if p x then [] else f x : unfold p f g (g x)
 
@@ -75,3 +80,9 @@ Check if given two argument function (as a list of triples ((a,b),c)) is associa
 >                  fn = M.fromList f
 >                  assoc a b c = fn M.! ((fn M.! (a,b)),c) == fn M.! (a,(fn M.! (b,c)))
 >              in foldr (\(a,b,c) r-> (show (a,b,c)++": "++(show(assoc a b c))):r) [] args
+
+Replace one element of a pair
+
+> replace_fst a' (a,b) = (a',b)
+
+> replace_snd b' (a,b) = (a,b')
