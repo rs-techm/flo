@@ -1,3 +1,21 @@
+Copyright 2015 Tech Mahindra
+
+This file is part of Flo.
+
+Flo is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Flo is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License
+along with Flo.  If not, see <http://www.gnu.org/licenses/>.
+
+
 > module Mqueue where
 
 > import Data.List
@@ -55,10 +73,6 @@ which prevents connection reversal using rec_revio (which also may have bugs).
     cycle, read or read (both can occur in the same clock cycle) upto $2^m$
     words each of size /bits/ bits.
 
-*** TODO
-    - expander 0 when input 0
-    - check expander rotnet control bits ordering
-
 *** DONE modify rotnet data wires using dat -<2012-05-15 Tue>
 
 Hack to avoid mux2_2 name clash.
@@ -105,10 +119,6 @@ Hack to avoid mux2_2 name clash.
 >                            ("o0",map (\i->i++"0") (wires "dout" 0 32)),("o1",map (\i->i++"1") (wires "dout" 0 32))]
 
 **** DONE chain' variant (maybe chain1 like foldr1) that does not take argument for "lsb" logic block or the "neighboring signals" argument <2012-05-11 Fri>
-
-**** TODO Clean up lte so that inputs don't have to be reversed <2012-05-11 Fri>
-
-**** TODO Replace inst_block by iblk? <2012-05-11 Fri>
 
 **** Updates to modified queues below <2013-07-06 Sat>
 
@@ -174,43 +184,6 @@ Hack to avoid mux2_2 name clash.
      Non-fwft variant mqueue is made by simply registering dout, with rden used
      as load enable.
 
-***** TODO Rewrite mqueue2 in terms of mqueue1. <2013-07-06 Sat>
-
-> {-mqueue2 m words bits =
->   let dat p = (concat . transpose) (map ((flip wires0) (2^m)) (wires0 p bits))
->   in make_block ("mqueue2_"++(show m)++"_"++(show words)++"_"++(show bits)) 
->        (["clk","reset","rd","wr"]++(wires0 "iwords" m)++(wires0 "owords" m)++(dat "din")) (["empty","full"]++(dat "dout"))
->        [inst_block {-wr offset-} (chain' adddffen adddffen'0 ["clk","reset","en"] ["cin","cout"] m)
->         (["clk","reset","wren"]++(wires0 "iwords" m)++(wires0 "wroff" m)++["wrcout"]),
->         inst_block gate_and2 ["wr","full_","wren"] {-change to deal with full (done)-},
->         inst_block {-din rotate-} (chain' (rotnet m) (rotnet m) (wires0 "u" m) [] bits)
->         ((dat "din")++(wires0 "wroff" m)++(dat "tdin")),
->         inst_block {-wr expander-} (lte m) (["wren"]++(reverse (wires0 "iwords" m))++(wires0 "twr" (2^m))),
->         inst_block {-wr rotate-} (rotnet m) ((wires0 "twr" (2^m))++(wires0 "wroff" m)++(wires0 "uwr" (2^m))),
->         inst_block {-rd offset-} (chain' adddffen adddffen'0 ["clk","reset","en"] ["cin","cout"] m)
->         (["clk","reset","rden"]++(wires0 "owords" m)++(wires0 "rdoff" m)++["rdcout"]),
->         inst_block gate_and2 ["rd","empty_","rden"] {-change to deal with empty (done)-},
->         inst_block {-dout rotate-} (chain' (rotnet m) (rotnet m) (wires0 "u" m) [] bits)
->         ((reverse (dat "tdout"))++(wires0 "rdoff" m)++(reverse (dat "udout"))),
->         inst_block {-dout reg-} (chain'' "_" dfrl dfrl ["clk","reset","load"] [] ((2^m)*bits))
->         (["clk","reset","rden"]++(dat "udout")++(dat "dout")),
->         inst_block {-rd expander-} (lte m) (["rden"]++(reverse (wires0 "owords" m))++(wires0 "trd" (2^m))),
->         inst_block {-rd rotate-} (rotnet m) ((wires0 "trd" (2^m))++(wires0 "rdoff" m)++(wires0 "urd" (2^m))),
->         --inst_block (chain' dff dff ["clk","reset"] [] m) (["clk", "reset"]++(wires0 "rdoff" m)++(wires0 "trdoff" m)),
->         inst_block {-queues-} (chain' (queue words bits) (queue words bits) ["clk","reset"] [] (2^m))
->         (["clk","reset"]++(wires0 "uwr" (2^m))++(wires0 "urd" (2^m))++(concatMap((flip wires0) (2^m)) (wires0 "tdin" bits))
->          ++(wires0 "full" (2^m))++(wires0 "empty" (2^m))++(concatMap ((flip wires0) (2^m)) (wires0 "tdout" bits))),
->         inst_block (bit_sum_mers m) ((wires0 "empty" ((2^m)-1))++(wires0 "emptys" m)),
->         inst_block (chain'' "_" fa fa0 [] ["cin","cout"] m)
->         ((wires0 "owords" m)++(wires0 "emptys" m)++["empty"++(show ((2^m)-1))]++(wires0 "empty_owords" m)++["empty"]),
->         inst_block (bit_sum_mers m) ((wires0 "full" ((2^m)-1))++(wires0 "fulls" m)),
->         inst_block (chain'' "_" fa fa0 [] ["cin","cout"] m)
->         ((wires0 "iwords" m)++(wires0 "fulls" m)++["full"++(show ((2^m)-1))]++(wires0 "full_iwords" m)++["full"]),
->         {-inst_block (fst (xbintree_arb gate_and2 (2^m))) ((wires0 "empty" (2^m))++["empty"]),
->         inst_block (fst (xbintree_arb gate_or2 (2^m))) ((wires0 "full" (2^m))++["full"]),-}
->         inst_block gate_invert ["empty","empty_"], inst_block gate_invert ["full","full_"]{-,
->         inst_block one ("_1"),inst_block one ("_0")-}]-}
-
 > mqueue2 m words bits =
 >   let dat p = (concat . transpose) (map ((flip wires0) (2^m)) (wires0 p bits))
 >   in make_block ("mqueue2_"++(show m)++"_"++(show words)++"_"++(show bits)) 
@@ -222,17 +195,7 @@ Hack to avoid mux2_2 name clash.
 >         inst_block {-dout reg-} (chain'' "__" dfrl dfrl ["clk","reset","load"] [] ((2^m)*bits))
 >         (["clk","reset","ren"]++(dat "_dout")++(dat "dout"))]
   
-
-**** TODO <2013-06-28 Fri>
-     Rename "one" and "zero" (signals from one and zero blocks) to "_1" and "_0"?
-
 *** Mqueue variant for PCIE input
-
-**** TODO
-     Rename mqueue below to something more appropriate. Also, create new mqueue
-     based on above mqueue as it uses newer approach compared to older mqueue0? <2013-06-10 Mon>
-
-**** TODO Create new 
 
 > mq_addr add_size count_size =
 >   make_block ("mq_addr_"++(show add_size)++"_"++(show count_size))
@@ -383,10 +346,6 @@ test_mqueue 1 1 3 4
 >                           [("i0",map (\i->i++"_0") (wires "din" 0 4)),("i1",map (\i->i++"_1") (wires "din" 0 4)),
 >                            ("o0",map (\i->i++"_0") (wires "dout" 0 4)),("o1",map (\i->i++"_1") (wires "dout" 0 4))]
 
-
-test_mqueue3 2 2 4 16
-test_mqueue3 2 2 4 4
-test_mqueue3 2 2 2 4
 
 > test_mqueue3 m tag_size words bits =
 >   let rep n x = replicate n x

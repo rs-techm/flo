@@ -1,3 +1,21 @@
+Copyright 2015 Tech Mahindra
+
+This file is part of Flo.
+
+Flo is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Flo is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License
+along with Flo.  If not, see <http://www.gnu.org/licenses/>.
+
+
 * Lib
 
 > module Lib where
@@ -33,13 +51,6 @@
 Required for comp_range.
 
 > one' = make_block "one" ["i1"] ["o"] [inst_block zero ["t"], inst_block gate_invert ["t","o"]]
-
-> --pblk_idv n = chain ("id_"++(show n)) [] [] pblk_id pblk_id
-
-TODO: Change above to use ncopy (or whatever it is named).
-**** TODO Rename to gate_inv?
-
-**** TODO Remove gate_ prefix? <2013-05-26 Sun>
 
 > gate_invert = make_pblock "invert" ["i"] ["o"] "  assign o = !i;\n"
 > gate_and2 = gate_2_template "and2" "&"
@@ -89,19 +100,8 @@ which prevents connection reversal using rec_revio (which also may have bugs).
 >              "assign o = ff_out;\n")
 
 
-**** TODO Rename dffen to dfre?
-
 > dffen = make_block "dffen" ["clk", "reset", "en", "i"] ["o"] [inst_block dff ["clk", "reset", "mo","o"],
 >                                                               inst_block mux2 ["o", "i", "en","mo"]]
-
-
-jkff commented as it seems wrong (~j to be replaced by ~k it seems) and jkfr
-seems to be better.
-
-> {-jkff = make_pblock "jkff" ["clk", "reset", "clk_en", "j", "k"] ["q", "_q"]
->       ("reg ff_out;\n"++"wire ff_in;\n"++
->        "always@(posedge clk or posedge reset) if (reset) ff_out <= 1'b0; else if (clk_en) ff_out <= ff_in;\n"++
->        "assign q = ff_out; assign _q = ~ ff_out;\n"++"assign ff_in = (j & (_q))|((~j) & q);\n")-}
 
 
 ** Flip flops
@@ -143,8 +143,6 @@ seems to be better.
 > dfsl = make_block "dfsl" ["clk","set","load","in"] ["out"] [inst_block mux2 ["out","in","load","_in"],
 >                                                             inst_block dfs ["clk","set","_in","out"]]
 
-**** TODO dfrl and dffen seem same
-
 __jkfr is incorrect (instead of k, its complement should be input to mux) and
 not really needed, but retained as used in stackef' which may (not sure) be
 used somewhere.
@@ -178,15 +176,6 @@ used somewhere.
 >                    inst_block dfsl ["clk","reset","shift","t","dout"]]
 
 synchronous ram.
-
-todo: sram block: add sync/async, oe/ce signal, no. of ports,10610
-
-todo: from xilinx manual, remove before distrib? before distrib, add a
-non-synchronous ram, and if poss, add a simplified synch ram that ISE
-infers as synch ram. Created ssram-alt.v. Still, need to see similar
-def in some book hopefully before including in distrib.
-
-**** TODO Use better hash or better, something more robust than a hash
 
 > hash pairlist = foldr (\x r->(+) (snd x) r) (0::Integer) pairlist
 
@@ -249,10 +238,6 @@ def in some book hopefully before including in distrib.
 ram_rd and ram_wr implement in verilog memory read and write ports, they are
 separate functions to enable multiport memory construction without code repetition.
 
-> --ram_wr p = "  always @(din"++p++" or addr"++p++" or wr"++p++") if (wr"++p++") ram[addr"++p++"]=din"++p++";\n"
-
-> --ram_rd p = "  assign "++p++"dout=ram[addr"++p++"];\n"
-
 > ram_wr p bits addr_bits = "  always @("++(intercalate " or " (map ((++) p) ((wire_vec "din" 0 bits)++
 >                                                                             (wire_vec "addr" 0 addr_bits)++["wr"])))++")\n"
 >                           ++"    if ("++p++"wr) ram[{"++(intercalate ", " (wire_vec (p++"addr") 0 addr_bits))++"}]={"++
@@ -289,16 +274,6 @@ initialized. If initpairs, a list of (addr,val) pairs is not empty, then each
 addr is initialized with val. If both initilizations are to be done, former is
 done before the latter.
 
-> {-ram words bits (flag,initval) initpairs =
->   make_pblock ("ram_"++(show words)++"_"++(show bits))
->                 ((wire_vec "din" 0 bits)++(wire_vec "addr" 0 (log2_ceil words))++["wr"]) (wire_vec "dout" 0 bits)
->                 ("  reg [0:"++(show (bits-1))++"] ram [0:"++(show (words-1))++"];\n"++
->                  "  wire [0:"++(show (bits-1))++"] din,dout;\n"++"  wire [0:"++(show (words-1))++"] addr;\n"++
->                  "  assign din={"++(concat (intersperse ", " (wire_vec "din" 0 bits)))++"};\n"++
->                  "  assign addr={"++(concat (intersperse ", " (wire_vec "addr" 0 bits)))++"};\n"++
->                  "  assign {"++(concat (intersperse ", " (wire_vec "dout" 0 bits)))++"}=dout;\n"++
->                  (ram_init words bits (flag,initval) initpairs)++(ram_rd "")++(ram_wr ""))-}
-
 > ram words bits (flag,initval) initpairs =
 >   make_pblock ("ram_"++(show words)++"_"++(show bits))
 >                 (["wr"]++(wire_vec "din" 0 bits)++(wire_vec "addr" 0 (log2_ceil words))) (wire_vec "dout" 0 bits)
@@ -311,10 +286,6 @@ done before the latter.
 synch_ram takes a ram block as input registers its input data, address and
 write single(s) (multiple if more than one port). clk and reset (present if
 reg_ram) are not registered. clk (if absent) and en input signals are added.
-
-**** TODO Names "clk" and "reset" hardwired and assumed first two.
-**** TODO Reset is synch.
-**** TODO if reg_ram not to be written, simplify code.
 
 >{- synch_ram ram = make_block ("synch_"++(name_ ram)) (["clk","reset"]++((in_ports_ ram)\\["clk","reset"])) (out_ports_ ram)
 >                 [inst_block (chain' dfrl dfrl ["clk","reset","load"] [] (length ((in_ports_ ram)\\["clk","reset"])))
@@ -336,8 +307,6 @@ reg_ram) are not registered. clk (if absent) and en input signals are added.
 >                                                           (ser (chain' dfrl dfrl ["clk","reset","load"] []
 >                                                                          ((log2_ceil words)+bits+1)) ram'))
 
-**** TODO Write a reg_ram or not? Or write a general function to register output? Perhaps the combinator mentioned below would be better.
-
 > ram_1r1w' words bits (flag,initval) initpairs =
 >   make_pblock ("ram_1r1w_"++(show words)++"_"++(show bits))
 >   (["w_wr"]++(wire_vec "w_din" 0 bits)++(wire_vec "w_addr" 0 (log2_ceil words))++
@@ -350,12 +319,6 @@ reg_ram) are not registered. clk (if absent) and en input signals are added.
 >   in reni (["clk","reset"]++(in_ports_ ram'))
 >        ({-scatter-} (ser (par' (chain' dfr dfr ["clk","reset"] [] ((log2_ceil words)+bits+1))
 >                       (chain' dfr dfr ["clk","reset"] [] (log2_ceil words))) ram'))
-
-**** TODO
-
-     Clean up Ram names
-     Remove reset ?
-     Clean up init in ssram
 
 
 > ram_1r1w_synch words bits (flag,initval) initpairs =
@@ -376,10 +339,6 @@ reg_ram) are not registered. clk (if absent) and en input signals are added.
 >         "  assign wa = "++(grp w_addr)++";\n  assign ra = "++(grp r_addr)++";\n  assign wi = "++(grp w_din)++
 >         ";\n  assign "++(grp r_dout)++" = ram [_ra];\n")
 
-> {-ram1r1w_synch words bits (flag,initval) initpairs =
->   make_block ("ram_1r1w_synch_"++(show words)++"_"++(show bits))-}
-
-**** TODO din before addr should be reversed (?) Also replace din/dout/addr with i/o/a? And w_wr?
 
 > ram_2r1w_synch words bits (flag,initval) initpairs =
 >   let w_addr = wire_vec "w_addr" 0 (log2_ceil words)
@@ -423,18 +382,12 @@ reg_ram) are not registered. clk (if absent) and en input signals are added.
 **** DONE Add a combinator that connects two blocks in series automatically naming wires uniquely.
      [Added ser and ser'.]
 
-**** TODO Mem initilization applicable to other RAM typs than ssram, separate it out? 
-
 > ha = make_pblock "ha" ["i0","i1"] ["sum","cout"] "  assign sum=i0^i1; assign cout=i0 & i1;\n"
 
 > ha0 = make_block "ha0" ["i0","inc"] ["sum","cout"] [inst_block ha ["i0","inc","sum","cout"]]
 
 hav (inc) implements ripple carry increment by one. it is interesting
 that chain' allows the inc input to be supplied to ha0.
-
-todo: chain (perhaps modified chain') that enables bidirectional
-connections between adjacent blocks (after making sure it is useful,
-perhaps for fir filter logic?.
 
 > hav size = chain' ha (make_block "ha0" ["i0","inc"] ["sum","cout"] [inst_block ha ["i0","inc","sum","cout"]]) []
 >            ["i1", "cout"] size
@@ -486,8 +439,6 @@ asserted (1), implements dec instead of inc because then only fa0
 needs an inverter (otherwise, all fas other than fa0 would need
 inverters).
 
-todo: rename sum and cout in incdec (to i_incdec and oflow? or better o and of?).
-
 > incdec = make_block "incdec" ["i","incdec","cin"] ["sum","cout"] [inst_block fa ["i","incdec","cin","sum","cout"]]
 
 > incdec0 = make_block "incdec0" ["i","incdec"] ["sum","cout"] [inst_block fa ["i","incdec","incdec_inv","sum","cout"],
@@ -513,16 +464,9 @@ todo: rename sum and cout in incdec (to i_incdec and oflow? or better o and of?)
 >                                 [("i"++(show i)),("t"++(show i))]) [0..((fromIntegral size)-1)]))++
 >                          [inst_block (fst (xbintree_arb gate_and2 size)) ((wire_vec "t" 0 size)++["o"])])
 
-
-**** TODO simple binary encoder using or gates <2013-06-28 Fri>
-
 *** Bit sum
     Adds up all 2^n input bits to ouput n bit binary sum.
 
-**** TODO <2013-06-28 Fri>
-     Better way to add no. of 1s in the input. If inputs are a power of two,
-     then structure would be a complete binary tree with an adder at each node,
-     adder size in level i would be i.
 
 > bit_sum n = make_block ("bit_sum_"++(show n)) (wires0 "i" (2^n)) (wires0 "o" (n+1))
 >             ((inst_block (chain' fa ha [] ["cin","cout"] (n+1)) ((wires2_0 "t" 2 n)++(wires0 "o" (n+1)))):
@@ -552,12 +496,6 @@ Version accepting n=1. <2013-08-18 Sun>
 
 > bit_sum_mers' n = if n==1 then pblk_id else (bit_sum_mers n)
 
-
-
-**** TODO Reset synch or asynch? For now, ensure reset only used by dff (or other ffs), maybe document otherwise.
-
-> --incdfr = ser (par (par' bid bid) ha) (par dfr bid) 
-
 > incdfr' = make_block "incdfr2o" ["clk","reset","cin"] ["cout","out","dfrout"]
 >            [inst_block ha ["cin","dfrout","out","cout"], inst_block dfr ["clk","reset","out","dfrout"]]
 
@@ -570,11 +508,6 @@ Version accepting n=1. <2013-08-18 Sun>
 > incdfre'0 = make_block "incdfre2o0" ["clk","reset","en","inc"] ["cout","out","dfrout"]
 >              [inst_block ha ["inc","dfrout","out","cout"], inst_block dffen ["clk","reset","en","out","dfrout"]]
 
-**** TODO Reconcile incdfr' and "incdfr2o"? <2012-05-11 Fri>
-
-**** TODO Remove count_incdfr? Replace in queue(/fifo?) with chain' incdfr... <2012-05-11 Fri>
-
-**** TODO Replace chain' with chain? <2012-05-11 Fri>
 
 > count_incdfr' size = chain' incdfr' incdfr'0 ["clk","reset"] ["cin","cout"] size
 
@@ -604,7 +537,6 @@ Version accepting n=1. <2013-08-18 Sun>
 
 > count_incdfrs1' size = chain' incdfrs1'' incdfrs1''0 ["clk","reset"] ["cin","cout"] size
 
-> --count_incdfrs1' size = chain' incdfr' incdfs''0 ["clk","reset"] ["cin","cout"] size
 
 Components:
 
@@ -651,8 +583,6 @@ addsubdffen'0).
 > addsubdffen''v size = chain' addsubdffen' addsubdffen''0 ["clk", "reset", "en", "addsub"] ["cin","cout"] size
 
 
-todo: shorten make_block to mblk (or blk) and inst_block to iblk to ease composition?
-
 *** Range lte 
     See range operation in FPL 2008 paper.
 
@@ -687,13 +617,6 @@ outputs. Also, the input is hardwired to 1.
 >                 [inst_block (chain' gate_invert gate_invert [] [] levels) ((wires0 "j" levels)++(wires0 "k" levels)),
 >                  inst_block (andor2n levels) (["one"]++(wires0 "k" levels)++(wires0 "u" size)),inst_block one ["one"],
 >                  inst_block (permute "revbits" reverse_bits size) ((wires0 "u" size)++(wires0 "o" size))]
-
-**** TODO Clean up lte gte mess <2012-05-15 Tue>
-     gte should derive from lte (essentially with inverted inputs) but to do so
-     the i input of lte and its use to control outputs has to be resolved. Also
-     outputs need to be reversed in lte. Also need to reverse inputs for both
-     lte and gte.
-
 
 *** Less/Greater than or equal to const <2013-05-22 Wed>
 
@@ -733,18 +656,8 @@ todo: "main" signals at end, so cout, sum? incdec, i?
 note that incdecdffen output is that of incdec and not dffen since the output
 will be registered in the synchronous ram as well.
 
-**** TODO Does the synch ram need the en signal?
-
-
 ** Rotnet
 
-**** TODO No. of outputs <2013-06-06 Thu>
-     Currently no. of outputs is same as no. of inputs. An extreme case would
-     be of a single output, in which case the ronet becomes a decoder
-     (mux). But how about in-between no. of outputs? Perhaps algo. for such a
-     rotnet is simpler if no. of outputs is a power of 2? Such a rotnet would
-     be useful for mqueues for example, where the max. no of input and outputs
-     differ.
 
 First operand of mod can be negative but seems correct.
 
@@ -753,11 +666,6 @@ First operand of mod can be negative but seems correct.
 >                                         "t"++(show (i+1))++"_"++(show j)]) [0..((2^n)-1)]
 
 rotnet rotates input bit at postion i to position i+u.
-
-TODO: Reverse of "u" ugly. How to fix? General question: if the
-convention adopted is to enumerate wire vecs in ascending order, how
-to assign to them to bits of an integer, which it seems more natural
-to specify in descending order?
 
 
 > rotnet n = make_block ("rotnet"++(show n)) ((wire_vec "t0_" 0 (2^n))++(wire_vec "u" 0 n))
@@ -778,8 +686,6 @@ to specify in descending order?
    cycle.
 
 *** Structure
-
-todo: figure
 
     A synchronous RAM with registered output is used because it enables the RAM
     to work at maximum clock frequency since inputs as well as outputs are
@@ -878,11 +784,6 @@ todo: figure
 >                   inst_block dffen ["clk", "reset", "en", "ido","ffo"],
 >                   inst_block mux2 [""]]
 
->{- test_incdecdffen'v size = tb_gen2 [3,3,3,3,3,3,2,2,2,2]
->                           "$write(\"en  incdec  output   cout\\n\\n\");\n"
->                           "$write(\"%b   %b       %b%b%b   %b\\n\\n\",mod_in[0],mod_in[1],mod_out[2],mod_out[1],mod_out[0],mod_out[3]);\n"
->                           (incdecdffen'v size) tb_seq-}
-
 
 ** Stack
 
@@ -958,9 +859,6 @@ todo: figure
      5. Rename fifo to queue? More abstract literature uses queue and, even if
         fifo sounds more crisp, queue is more consistent, else stack should be
         called lifo, compared to which calling fifo queue is preferable.
-
-**** TODO Rewrite for FWFT (as only or optional mode) <2013-01-09 Wed>.
-     FWFT seems to allow faster and simpler operation.
 
      Already seems FWFT mode? <2013-05-24 Fri>
 
@@ -1048,51 +946,6 @@ todo: figure
       bram. So, essentially, a faster path from din to dout in a specific
       circumstance.
 
-> {-queue words bits =
->   let adsize = log2_ceil words
->   in make_block ("queue_"++(show words)++"_"++(show bits))
->        (["clk","reset","wr","rd"]++(wire_vec "din" 0 bits)) (["full","empty"]++(wire_vec "dout" 0 bits))
->        [inst_block {-rdcount-} (count_incdfr' (adsize+1))
->         (["clk","reset","ren","rcout"]++(wire_vec "rad" 0 adsize)++["rmsb"]++(wire_vec "rad_reg" 0 adsize)++["rmsb_reg"]),
->         inst_block {-wrcount-} (count_incdfr' (adsize+1))
->         (["clk","reset","wen","wcout"]++(wire_vec "wad" 0 adsize)++["wmsb"]++(wire_vec "wad_reg" 0 adsize)++["wmsb_reg"]),
->         inst_block gate_and2 ["wr","full_","wen"], inst_block gate_and2 ["rd","empty_","ren"],
->         inst_block {-ram-} (ram_1r1w_synch words bits (True,0) [(0,0)]) --use non-initialized version?
->         (["clk","reset","wen"]++(wire_vec "din" 0 bits)++(wire_vec "wad_reg" 0 adsize)++
->                     (wire_vec "rad" 0 adsize)++(wire_vec "_dout" 0 bits)),
->         inst_block {-rwmsbeq-} gate_xnor2 ["rmsb_reg","wmsb_reg","rwmsbeq"], inst_block gate_invert ["rwmsbeq","rwmsbeq_"],
->         inst_block {-rweq-} (comp_eq adsize) ((wire_vec "rad_reg" 0 adsize)++(wire_vec "wad_reg" 0 adsize)++["rweq"]),
->         inst_block gate_and2 ["empty","wr","load"], inst_block dfr ["clk","reset","load","switch"],
->         inst_block {-reg-} (chain0' dfrl ["clk","reset","load"] bits)
->                  (["clk","reset","load"]++(wires0 "din" bits)++(wires0 "__dout" bits)),
->         inst_block (chain0' mux2 ["j"] bits) ((wires0 "_dout" bits)++(wires0 "__dout" bits)++["switch"]++
->                                               (wires0 "dout" bits)),
->         inst_block {-full-} gate_and2 ["rwmsbeq_","rweq","full"], inst_block gate_invert ["full","full_"],
->         inst_block {-empty-} gate_and2 ["rwmsbeq","rweq","empty"], inst_block gate_invert ["empty","empty_"]]-}
-
-> {-queue words bits =
->   let adsize = log2_ceil words
->   in make_block ("queue_"++(show words)++"_"++(show bits))
->        (["clk","reset","wr","rd"]++(wire_vec "din" 0 bits)) (["full","empty"]++(wire_vec "dout" 0 bits))
->        [inst_block {-rdcount-} (count_incdfr' (adsize+1))
->         (["clk","reset","ren","rcout"]++(wire_vec "rad" 0 adsize)++["rmsb"]++(wire_vec "rad_reg" 0 adsize)++["rmsb_reg"]),
->         inst_block {-wrcount-} (count_incdfr' (adsize+1))
->         (["clk","reset","wen","wcout"]++(wire_vec "wad" 0 adsize)++["wmsb"]++(wire_vec "wad_reg" 0 adsize)++["wmsb_reg"]),
->         inst_block gate_and2 ["wr","full_","wen"], inst_block gate_and2 ["rd","empty_","ren"],
->         inst_block {-ram-} (ram_1r1w_synch words bits (True,0) [(0,0)]) --use non-initialized version?
->         (["clk","reset","wen"]++(wire_vec "din" 0 bits)++(wire_vec "wad_reg" 0 adsize)++
->                     (wire_vec "rad" 0 adsize)++(wire_vec "_dout" 0 bits)),
->         inst_block {-rwmsbeq-} gate_xnor2 ["rmsb_reg","wmsb_reg","rwmsbeq"], inst_block gate_invert ["rwmsbeq","rwmsbeq_"],
->         inst_block {-rweq-} (comp_eq adsize) ((wire_vec "rad_reg" 0 adsize)++(wire_vec "wad_reg" 0 adsize)++["rweq"]),
->         inst_block {-switch-comp-} (comp_eq adsize) ((wire_vec "rad" 0 adsize)++(wire_vec "wad_reg" 0 adsize)++["_load"]),
->         inst_block gate_and2 ["wen","_load","load"], inst_block dfr ["clk","reset","load","switch"],
->         inst_block {-reg-} (chain0' dfrl ["clk","reset","load"] bits)
->                  (["clk","reset","load"]++(wires0 "din" bits)++(wires0 "__dout" bits)),
->         inst_block (chain0' mux2 ["j"] bits) ((wires0 "_dout" bits)++(wires0 "__dout" bits)++["switch"]++
->                                               (wires0 "dout" bits)),
->         inst_block {-full-} gate_and2 ["rwmsbeq_","rweq","full"], inst_block gate_invert ["full","full_"],
->         inst_block {-empty-} gate_and2 ["rwmsbeq","rweq","empty"], inst_block gate_invert ["empty","empty_"]] -}
-
 > queue words bits =
 >   let adsize = log2_ceil words
 >   in make_block ("queue_"++(show words)++"_"++(show bits))
@@ -1153,34 +1006,6 @@ todo: figure
 
      Non-fwft variant queue is made by simply registering dout, with rden used
      as load enable.
-
-***** TODO chain'' "__" used to avoid conflicts. Fix issue properly. <2013-07-06 Sat>
-
-***** TODO Rewrite queue1 in terms of queue. <2013-07-06 Sat>
-
-> {-queue1 words bits =
->   let adsize = log2_ceil words
->   in make_block ("queue1_"++(show words)++"_"++(show bits))
->        (["clk","reset","wr","rd"]++(wire_vec "din" 0 bits)) (["full","empty"]++(wire_vec "dout" 0 bits))
->        [inst_block {-rdcount-} (count_incdfr' (adsize+1))
->         (["clk","reset","ren","rcout"]++(wire_vec "rad" 0 adsize)++["rmsb"]++(wire_vec "rad_reg" 0 adsize)++["rmsb_reg"]),
->         inst_block {-wrcount-} (count_incdfr' (adsize+1))
->         (["clk","reset","wen","wcout"]++(wire_vec "wad" 0 adsize)++["wmsb"]++(wire_vec "wad_reg" 0 adsize)++["wmsb_reg"]),
->         inst_block gate_and2 ["wr","full_","wen"], inst_block gate_and2 ["rd","empty_","ren"],
->         inst_block {-ram-} (ram_1r1w_synch words bits (True,0) [(0,0)]) --use non-initialized version?
->         (["clk","reset","wen"]++(wire_vec "din" 0 bits)++(wire_vec "wad_reg" 0 adsize)++
->                     (wire_vec "rad" 0 adsize)++(wire_vec "_udout" 0 bits)),
->         inst_block {-dout reg-} (chain'' "__" dfrl dfrl ["clk","reset","load"] [] bits)
->         (["clk","reset","ren"]++(wires0 "_udout" bits)++(wires0 "dout" bits)),
->         inst_block {-rwmsbeq-} gate_xnor2 ["rmsb_reg","wmsb_reg","rwmsbeq"], inst_block gate_invert ["rwmsbeq","rwmsbeq_"],
->         inst_block {-rweq-} (comp_eq adsize) ((wire_vec "rad_reg" 0 adsize)++(wire_vec "wad_reg" 0 adsize)++["rweq"]),
->         inst_block gate_and2 ["empty","wr","load"], inst_block dfr ["clk","reset","load","switch"],
->         inst_block {-reg-} (chain0' dfrl ["clk","reset","load"] bits)
->                  (["clk","reset","load"]++(wires0 "din" bits)++(wires0 "__udout" bits)),
->         inst_block (chain0' mux2 ["j"] bits) ((wires0 "_udout" bits)++(wires0 "__uudout" bits)++["switch"]++
->                                               (wires0 "udout" bits)),
->         inst_block {-full-} gate_and2 ["rwmsbeq_","rweq","full"], inst_block gate_invert ["full","full_"],
->         inst_block {-empty-} gate_and2 ["rwmsbeq","rweq","empty"], inst_block gate_invert ["empty","empty_"]]-}
 
 > queue1 words bits =
 >   let adsize = log2_ceil words

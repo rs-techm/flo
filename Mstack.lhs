@@ -1,3 +1,21 @@
+Copyright 2015 Tech Mahindra
+
+This file is part of Flo.
+
+Flo is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Flo is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License
+along with Flo.  If not, see <http://www.gnu.org/licenses/>.
+
+
 > module Mstack where
 
 > import Data.List
@@ -8,8 +26,6 @@
 > import Test
 > import Misc
 
-> --main = putstr ((fl__ver (incdecdffen'v 3))++(test_incdecdffen'v 3))
-
 > comp_range_l' size thresh = if (size==0)
 >                             then one 
 >                             else make_block ("comp_range_l_"++(show size)++(show thresh))
@@ -18,11 +34,6 @@
 >                                     ((wire_vec "i" 0 (size-1))++["t"]),
 >                                     inst_block (if (mod thresh 2)==0 then gate_or2 else gate_and2) 
 >                                     [("i"++(show size)),"t","o"]]
-
-> -- comp_range_l size thresh = chain [] ["i0","o"] one'
-> --                           (map (\b->if b=='0' then gate_or2 else gate_and2) (show_num_base_size 2 size thresh))
-
-TODO: Rewrite both ranges using chain.
 
 > comp_range_ge size thresh = chain "ge" [] ["i0","o"] one
 >                             (map (\b->if (head b)=='0' then (b,gate_or2) else (b,gate_and2))
@@ -39,7 +50,6 @@ TODO: Rewrite both ranges using chain.
 >         inst_block gate_and2 ["i2","i0","t20"], inst_block gate_or2 ["t01","t12","t"],
 >         inst_block gate_or2 ["t","t20","o"]]
 
-**** TODO: rename gate_invert gate_inv.
 
 > gate_1i gate = make_block ((name_ gate)++"_i1") ["i0","i1"] ["o"]
 >                [inst_block gate ["i0","t","o"], inst_block gate_invert ["i1","t"]]
@@ -86,13 +96,6 @@ TODO: Rewrite both ranges using chain.
 >                          inst_block gate_and2 [ "_popi","pop","popi"],
 >                          inst_block (stack size bits) (["clk","reset","pushi","popi"]++(wire_vec "i" 0 bits)++
 >                                                        (wire_vec "o" 0 bits))]
-
-> --stackiv m = chain "stackiv" (["push","pop","oflow"]++(wire_vec "cur" 0 m)++(wire_vec "new" 0 m)) [] (stacki m 0)
-> --            (map (\i->((show i),stacki m i)) (reverse [1..((2^m)-1)]))
-
-> --  rotnet_in m b = make_block ("rotnet_in_"++(show m)++"_"++(show b)) (wire_vec "i" 0 (b*m)) (wire_vec "o" 0 (b*m))
->                 
-TODO: Change size to words or something? In stack too?
 
 
 ** Mstack
@@ -195,13 +198,6 @@ in the next clock cycle by which time /new/ has become /cur/. Thus
 >                       [inst_block (chain' (rotnet m) (rotnet m) (wire_vec "u" 0 m) [] bits)
 >                        ((rotatel (fromIntegral (bits*((2^m)-1))) (reverse (wire_vec "to" 0 (bits*(2^m)))))++
 >                         (wire_vec "cur_" 0 m)++(reverse (wire_vec "o" 0 (bits*(2^m)))))])
-
-
-TODO: mstack instance name: single underscore? add words and bits?
-
-TODO: To underscore or not to underscore? Or when to do so?
-
-TODO: tvec integer handling reverse
 
 > --test_mstack::Int->Int->Int->[Char]
 > test_mstack m size bits = tb_gen2 (tv_reorder ((in_ports_ (mstack m size bits))\\["clk","reset"])

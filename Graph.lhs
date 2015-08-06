@@ -1,3 +1,21 @@
+Copyright 2015 Tech Mahindra
+
+This file is part of Flo.
+
+Flo is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Flo is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License
+along with Flo.  If not, see <http://www.gnu.org/licenses/>.
+
+
 > module Graph where
 
 > import qualified Data.Map as Map
@@ -104,29 +122,9 @@ Graph type and out* functions return (edge,node) while inEdgeSet returns
 
 > nodeSet graph = (Map.foldWithKey (\k x l-> Set.insert k (Set.union l (Set.map snd x))) Set.empty graph)
 
-> --nodeSet graph = Map.keysSet graph
-
-
 > edgeSet graph = Map.foldWithKey (\s x set->Set.union (Set.map (\(l,d)->(s,d,l)) x) set) Set.empty graph
 
 > edges graph = Map.foldWithKey (\s x list->(map (\(l,d)->(s,d,l)) (Set.toList x))++list) [] graph
-
-**** TODO Rewrite edges using edgeSet? Uniformly rewrite others as well using their set counterparts?
-
-**** TODO
-     Should insEdge also check if destination node is in graph. If not, should
-     a separate graph consistency function be written to ensure each node is
-     inserted via insNode? If former is assumed, allNodes need not be so
-     complex.
-
-**** TODO
-     Rename allNodes to nodeList or better, nodes (latter also consistent with Data.Map).
-
-**** TODO
-     Write mapEdges and use it to write edges. Rewrite nodes using mapNodes.
-
-**** TODO <2013-04-12 Fri>
-     insEdge sn dn e?
 
 > insEdge e sn dn graph = if Map.member sn graph
 >                         then Map.adjust (Set.insert (e,dn)) sn graph
@@ -145,9 +143,6 @@ edge(s).
 
 > delOutEdges node graph = Set.fold (\(el,dn) graph'->(delEdge el node dn graph')) graph (outEdgeSet node graph)
 
-**** TODO Rewrite insEdge like insEdge'.
-
-
 Insert edge variant that creates nodes if they don't exist. Required to create
 a graph from list of edges and may be useful on its own.
 
@@ -159,26 +154,12 @@ a graph from list of edges and may be useful on its own.
 
 Union and variants have same semantics as the corresponding Map functions.
 
-**** TODO Unions may not be too useful. Proper merge_graph required (perhaps unionWith with a suitable function).
-
 *** Depth First Search <2015-04-10 Fri>
 
 Based on [[https://en.wikipedia.org/wiki/Depth-first_search#Pseudocode][wikipedia]]. Set as well as list used to store nodes, as former is used
 to search for nodes and latter to preserve order (and is the output). Seems
 graph argument for dfs1 can be give separately as graph not modified. Seems to
 output nodes in preorder.
-
-> --dfs1 node ((set,list),graph) = if (Set.member node set) then ((set,list),graph) else dfs0 graph node (set,list)
-
-> --dfs0 graph node (set,list) = Set.fold dfs1 ((Set.insert node set,(node:list)),graph) (outNodeSet node graph)
-
-> --dfs graph node = snd (fst (dfs0 graph node (Set.empty,[])))
-
-> --dfs1 node ((set,list),graph) = if (Set.member node set) then ((set,list),graph) else dfs0 graph node (set,list)
-
-> --dfs0 graph node (set,list) = let Set.fold dfs1 ((Set.insert node set,node),graph) (outNodeSet node graph)
-
-> --dfs graph node = snd (fst (dfs0 graph node (Set.empty,[])))
 
 Below variation outputs edges (in postorder?) forming a spanning tree. preorder
 function can be used to traverse tree and output nodes (in pre(post?) order?).
@@ -218,7 +199,6 @@ Essentially same as above, but computes nodes in reverse postorder.
 > dfs_post node graph = snd (dfs_post0 node (graph,[]))
 
 
-
 *** Topological Sort <2015-04-10 Fri>
 
 > topo_sort2 node node' (graph,nodes0) = (delEdge' node node' graph, (if (Set.null (inEdgeSet node' (delEdge' node node' graph))) then (node':nodes0) else nodes0))
@@ -247,7 +227,6 @@ Currently merge_graph valid only for graphs with disjoint nodes
 > unions graphs = Map.unions graphs
 
 > unionsWith fn graphs = Map.unionsWith fn graphs
-
 
 > mapNodes fn graph = Map.foldWithKey (\n s m->Map.insert (fn n) (Set.map (\(e,n')->(e,(fn n'))) s) m) Map.empty graph
 
@@ -291,7 +270,3 @@ the graph. Returns a map with nodes as keys and the assigned ints as data values
 
 > conn_4node_cyc = insEdges [(0,1,[]), (0,2,[]), (1,2,[]), (2,0,[]), (2,3,[]), (3,3,[])]
                 
-**** TODO show "\\" outputs "\\\\" so putStr(shows"\\") outputs "\\" but "\" is required. <2012-08-15 Wed>
-
-
-**** TODO Add fold/map over edges/nodes.

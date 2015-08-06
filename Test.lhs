@@ -1,3 +1,21 @@
+Copyright 2015 Tech Mahindra
+
+This file is part of Flo.
+
+Flo is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Flo is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License
+along with Flo.  If not, see <http://www.gnu.org/licenses/>.
+
+
 > module Test where
 
 > import Data.Bits
@@ -11,8 +29,6 @@
 > tb_comb = 1
 
 > tb_seq = 0
-
-TODO: Cleanup tb_gen[2,3].
 
 > tb_clk_reset = "  initial begin reset = 1'b1; #12.5 reset = 1'b0; end\n"++
 >                 "  initial clk = 1'b0; always #5 clk =~ clk;\n"
@@ -70,8 +86,6 @@ Test vector reorder: Order the test vector columns in the same order as ports of
 >   transpose (map ((Map.!) (Map.fromList (zip tv_ports (transpose (map (show_num_base_size 2 (length tv_ports)) tvecs)))))
 >              inst_ports)
 
-TODO: Replace ports by wires above.
-
 > tb_loop2 n_tests inputs =
 >   "  initial begin\n"++
 >   "    #6 for(i=0;i<"++(show n_tests)++";i=i+1)\n"++"      begin #10 {"++(intercalate "," inputs)++
@@ -92,10 +106,7 @@ TODO: Replace ports by wires above.
 >         "  initial {"++(intercalate "," inputs)++"} = 0;\n"++  -- ++" initial\n"++
 >         (tb_block_inst block)++(tb_loop2 (length test_vecs) inputs)++"\nendmodule\n"
 >
-> {- main = let dut = (stack 16 4)
->        in (putStr) (((fl__ver dut)++(tb_gen2 (tv_reorder (["push","pop"]++(wire_vec "i" 0 4))
->                                               (tvc (["push","pop"],[0,2,1,2,2,1,1,1,0]) ((wire_vec "i" 0 4),[0..8])))
->                                      dut tb_seq [("din",(wire_vec "i" 0 4)),("dout",(wire_vec "o" 0 4))]))) -}
+
 
 > tb_gen test_vecs block comb_seq =
 >   let inputs = if comb_seq == tb_seq then (in_ports_ block)\\["clk","reset"] else (in_ports_ block)
